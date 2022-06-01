@@ -1,0 +1,320 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>七麦analysis参数逆向还原 | Chen's Blog</title><meta name="author" content="Chen Xs"><meta name="copyright" content="Chen Xs"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="前言想写这篇主要是七麦网的加密方式比较有趣，有挺多值得深究的地方，在文章中我会一步步用python还原，并介绍一些加密的知识，那么话不多说，let the hacking begin ! 调试七麦网基本每个数据接口都需要带上 analysis参数，不然就会返回 Access Error 直接全局搜analysis基本没有线索，说明七麦把这个键值做了隐藏，直接xhr下断点 断住了，接下来就是观察变量">
+<meta property="og:type" content="article">
+<meta property="og:title" content="七麦analysis参数逆向还原">
+<meta property="og:url" content="https://cxs1427.github.io/2022/05/12/%E4%B8%83%E9%BA%A6signature%E5%8F%82%E6%95%B0%E9%80%86%E5%90%91%E8%BF%98%E5%8E%9F/index.html">
+<meta property="og:site_name" content="Chen&#39;s Blog">
+<meta property="og:description" content="前言想写这篇主要是七麦网的加密方式比较有趣，有挺多值得深究的地方，在文章中我会一步步用python还原，并介绍一些加密的知识，那么话不多说，let the hacking begin ! 调试七麦网基本每个数据接口都需要带上 analysis参数，不然就会返回 Access Error 直接全局搜analysis基本没有线索，说明七麦把这个键值做了隐藏，直接xhr下断点 断住了，接下来就是观察变量">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/3.jpg">
+<meta property="article:published_time" content="2022-05-12T00:38:21.000Z">
+<meta property="article:modified_time" content="2022-05-13T06:21:12.129Z">
+<meta property="article:author" content="Chen Xs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/3.jpg"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://cxs1427.github.io/2022/05/12/%E4%B8%83%E9%BA%A6signature%E5%8F%82%E6%95%B0%E9%80%86%E5%90%91%E8%BF%98%E5%8E%9F/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: Chen Xs","link":"链接: ","source":"来源: Chen's Blog","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '七麦analysis参数逆向还原',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2022-05-13 14:21:12'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><link rel="stylesheet" href="/css/background.css"><!-- hexo injector head_end start --><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Zfour/hexo-electric-clock@1.0.6/clock.css"><link rel="stylesheet" href="https://unpkg.zhimg.com/hexo-butterfly-footer-beautify@1.0.0/lib/runtime.css" media="print" onload="this.media='all'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 6.0.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data is-center"><div class="data-item"><a href="/archives/"><div class="headline">文章</div><div class="length-num">34</div></a></div><div class="data-item"><a href="/tags/"><div class="headline">标签</div><div class="length-num">0</div></a></div><div class="data-item"><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 生活</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/galleryGroup/"><i class="fa-fw fas fa-leaf"></i><span> 相册</span></a></li><li><a class="site-page child" href="/college-poems/"><i class="fa-fw fas fa-fire"></i><span> 诗选</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/bangumis/"><i class="fa-fw fas fa-moon"></i><span> 追番</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/cinemas/"><i class="fa-fw fas fa-mountain"></i><span> 追剧</span></a></li><li><a class="site-page child" href="/games/"><i class="fa-fw fas fa-sign-language"></i><span> 游戏</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/3.jpg')"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Chen's Blog</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-list"></i><span> 生活</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/galleryGroup/"><i class="fa-fw fas fa-leaf"></i><span> 相册</span></a></li><li><a class="site-page child" href="/college-poems/"><i class="fa-fw fas fa-fire"></i><span> 诗选</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/bangumis/"><i class="fa-fw fas fa-moon"></i><span> 追番</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 读书</span></a></li><li><a class="site-page child" href="/cinemas/"><i class="fa-fw fas fa-mountain"></i><span> 追剧</span></a></li><li><a class="site-page child" href="/games/"><i class="fa-fw fas fa-sign-language"></i><span> 游戏</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">七麦analysis参数逆向还原</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-05-12T00:38:21.000Z" title="发表于 2022-05-12 08:38:21">2022-05-12</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-05-13T06:21:12.129Z" title="更新于 2022-05-13 14:21:12">2022-05-13</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>4分钟</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>想写这篇主要是七麦网的加密方式比较有趣，有挺多值得深究的地方，在文章中我会一步步用python还原，并介绍一些加密的知识，那么话不多说，let the hacking begin !</p>
+<h2 id="调试"><a href="#调试" class="headerlink" title="调试"></a>调试</h2><p>七麦网基本每个数据接口都需要带上 <code>analysis</code>参数，不然就会返回 <code>Access Error</code><br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/%E5%88%9D%E5%A7%8B%E5%8F%82%E6%95%B0.png"></p>
+<p>直接全局搜<code>analysis</code>基本没有线索，说明七麦把这个键值做了隐藏，直接xhr下断点<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/xhr%E6%96%AD%E7%82%B9.png"></p>
+<p>断住了，接下来就是观察变量和追踪 <strong>Call Stack</strong>了<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/promise-interceptors.png"></p>
+<p>在 promise 异步请求的 interceptors 中发现可疑点，打个断点试试</p>
+<blockquote>
+<p><code>promise</code> 是 ES6 新增的一个用于处理异步任务的javascript类，因为js代码是<strong>单线程执行</strong>的，很多浏览器事件都必须异步执行<a target="_blank" rel="noopener" href="https://www.runoob.com/js/js-promise.html">（传送门）</a><br><code>interceptors</code> 即Axios（一个基于 promise 的 HTTP 库）的拦截器模式，分成两种，分别是<code>request请求拦截器</code>和<code>response响应拦截器</code>，其中，请求拦截器可以修改body参数（<strong>fulfilled操作</strong>），也可以直接拒绝非法请求(<strong>rejected操作</strong>)<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1872670">（传送门）</a></p>
+</blockquote>
+<p>这里主要是修改body，所以我们进入 fulfilled 的 <code>FunctionLocation</code> 查看<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/fulfilled%E5%86%85%E9%83%A8.png"></p>
+<p>打断点调试，Resume一下，这里我们看到<code>a</code>就是analysis的值，但在函数入口的时候还没有，所以必定是在上面几行代码中生产的<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/filfull%E6%89%93%E6%96%AD%E7%82%B9.png"></p>
+<h2 id="代码分析"><a href="#代码分析" class="headerlink" title="代码分析"></a>代码分析</h2><p>在函数内部我们看到 <code>a</code>的生成代码是</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">a = (<span class="number">0</span>,</span><br><span class="line">n.cv)((<span class="number">0</span>,</span><br><span class="line">n.oZ)(r, l))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 也就是 a = (0,n.cv)((0,n.oZ)(r, l))</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="l参数"><a href="#l参数" class="headerlink" title="l参数"></a>l参数</h3><p>先分析参数，首先是 <code>l</code>，往上找到生成步骤，即 <code>(0,n.nF)(&quot;qimai|Technologyx&quot;, 1)</code><br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/l%E5%8F%98%E9%87%8F.png"></p>
+<p>传入的是两个常数，进入<code>n.nF</code>内部查看，也基本是字符串转换、位计算的一些常规操作，所以这里l直接取 <code>0000000c735d856</code>就行</p>
+<h3 id="r参数"><a href="#r参数" class="headerlink" title="r参数"></a>r参数</h3><p>经过调试发现，r的初始值是几个查询<strong>值的列表</strong><br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/r%E5%88%9D%E5%A7%8B%E5%80%BC.png"></p>
+<p>先经过<code>排序</code>再 <code>join</code> 操作，接下来的n.cv其实就是 base64 编码<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/n.cv.png"></p>
+<p>后面的几步操作无非是字符串的拼接，其中涉及到了三个变量</p>
+<ul>
+<li><code>e.url.replace(e.baseURL, &quot;&quot;)</code> 即去掉主站域名后的路径，比如  <a target="_blank" rel="noopener" href="https://api.qimai.cn/rank/index">https://api.qimai.cn/rank/index</a>  生成  /rank/index</li>
+<li>d 的值是固定的 “@#”</li>
+<li>o 的值是 <code>o = +new Date - (f || 0) - 1515125653845</code>，new Date 是当前的<strong>13位毫秒时间戳</strong></li>
+<li>f 的值好像是个和 <strong>cookies</strong> 有关的整数，这里我直接取随机整数也能通过，精力有限就不深究了</li>
+</ul>
+<h3 id="两个函数"><a href="#两个函数" class="headerlink" title="两个函数"></a>两个函数</h3><p>最后就是 <code>a = (0,n.cv)((0,n.oZ)(r, l))</code>了，这里明显是经过了两个函数的处理</p>
+<ol>
+<li>n.oZ<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/n.oz.png"></li>
+</ol>
+<p>都是一些常规的计算，直接用 python 还原</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">oz</span>(<span class="params">a</span>):</span></span><br><span class="line">    t = <span class="string">&quot;0000000c735d856&quot;</span></span><br><span class="line">    n = <span class="built_in">len</span>(t)</span><br><span class="line">    e = []</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(a)):</span><br><span class="line">        e.append(<span class="built_in">chr</span>(<span class="built_in">ord</span>(a[i]) ^ <span class="built_in">ord</span>(t[(i + <span class="number">10</span>) % n])))</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;&quot;</span>.join(e)</span><br></pre></td></tr></table></figure>
+<p>PS:<br>这里涉及到字符和ASCII码的相互转换</p>
+<ul>
+<li><strong>ord</strong> 得到 <code>ASCII码</code>，对应 js 的 <strong>CharCodeAt</strong>，用法是 <code>&quot;cxs&quot;.CharCodeAt(0)</code>，即转换第一个字符c</li>
+<li><strong>chr</strong> 得到 <code>字符</code>，对应 js 的 <strong>fromCharCode</strong>，用法是 <code>String.fromCharCode(77)</code>，得到字符”M”</li>
+</ul>
+<p>fromCharCode 的方法在代码中没有直接体现，而是<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/fromCharCode.png"><br>其实直接拿 a变量那一整句去 console执行，就得出fromCharCode了（对面的前端好无聊 😑😑😑）</p>
+<ol start="2">
+<li>n.cv<br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/ncv.png"></li>
+</ol>
+<p>进入函数内部，多次调试发现，只进行了 base64 加密，<code>encodeURIComponent</code> 那一部分最先对原参数进行处理，但是跟没处理一样 ，可以忽略</p>
+<p><code>replace(/%([0-9A-F]&#123;2&#125;)/g, ...</code> 的意思就是 <strong>遍历字符串，寻找能匹配 %([0-9A-F]{2})的子字符串，做替换</strong>， <code>/g</code> 的意思是尽可能匹配多的结果，没有的话只会进行一次匹配，还有其他表示: <code>/i</code> 忽略大小写，<code>/m</code> 多行匹配</p>
+<h3 id="代码整理"><a href="#代码整理" class="headerlink" title="代码整理"></a>代码整理</h3><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> base64 <span class="keyword">import</span> b64encode</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">default_headers = &#123;</span><br><span class="line">    <span class="string">&quot;Accept&quot;</span>: <span class="string">&quot;application/json, text/plain, */*&quot;</span>,</span><br><span class="line">    <span class="string">&quot;Accept-Language&quot;</span>: <span class="string">&quot;zh-CN,zh;q=0.9&quot;</span>,</span><br><span class="line">    <span class="string">&quot;User-Agent&quot;</span>: <span class="string">&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36&quot;</span>,</span><br><span class="line">    <span class="string">&quot;Accept-Encoding&quot;</span>: <span class="string">&quot;gzip, deflate, br&quot;</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">oZ</span>(<span class="params">a</span>):</span></span><br><span class="line">    t = <span class="string">&quot;0000000c735d856&quot;</span></span><br><span class="line">    n = <span class="built_in">len</span>(t)</span><br><span class="line">    e = []</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(a)):</span><br><span class="line">        e.append(<span class="built_in">chr</span>(<span class="built_in">ord</span>(a[i]) ^ <span class="built_in">ord</span>(t[(i + <span class="number">10</span>) % n])))</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;&quot;</span>.join(e)</span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">base64_encode</span>(<span class="params">s: <span class="built_in">str</span></span>):</span></span><br><span class="line">    <span class="keyword">return</span> b64encode(s.encode()).decode()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gen_token</span>(<span class="params">url, params</span>):</span></span><br><span class="line">    baseURL = <span class="string">&quot;https://api.qimai.cn&quot;</span></span><br><span class="line">    f = random.randint(<span class="number">100</span>, <span class="number">4000</span>)</span><br><span class="line">    o = <span class="built_in">int</span>(time.time() * <span class="number">1000</span>) - f - <span class="number">1515125653845</span></span><br><span class="line">    </span><br><span class="line">    r = params.values()</span><br><span class="line">    r = <span class="string">&quot;&quot;</span>.join(<span class="built_in">sorted</span>(r))</span><br><span class="line">    r = base64_encode(r)</span><br><span class="line">    r += <span class="string">&quot;@#&quot;</span> + url.replace(baseURL, <span class="string">&quot;&quot;</span>)</span><br><span class="line">    r += <span class="string">&quot;@#&quot;</span> + <span class="built_in">str</span>(o)</span><br><span class="line">    r += <span class="string">&quot;@#1&quot;</span></span><br><span class="line">    a = base64_encode(oZ(r))</span><br><span class="line">    <span class="keyword">return</span> a</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span>():</span></span><br><span class="line">    url = <span class="string">&quot;https://api.qimai.cn/rank/indexSnapshot&quot;</span></span><br><span class="line">    params = &#123;</span><br><span class="line">        <span class="string">&quot;brand&quot;</span>: <span class="string">&quot;paid&quot;</span>,</span><br><span class="line">        <span class="string">&quot;device&quot;</span>: <span class="string">&quot;iphone&quot;</span>,</span><br><span class="line">        <span class="string">&quot;country&quot;</span>: <span class="string">&quot;cn&quot;</span>,</span><br><span class="line">        <span class="string">&quot;genre&quot;</span>: <span class="string">&quot;6014&quot;</span>,</span><br><span class="line">        <span class="string">&quot;date&quot;</span>: <span class="string">&quot;2022-05-13&quot;</span>,</span><br><span class="line">        <span class="string">&quot;page&quot;</span>: <span class="string">&quot;1&quot;</span>,</span><br><span class="line">        <span class="string">&quot;is_rank_index&quot;</span>: <span class="string">&quot;1&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">    params[<span class="string">&#x27;analysis&#x27;</span>] = gen_token(url, params)</span><br><span class="line">    resp = requests.get(url, params=params, headers=default_headers)</span><br><span class="line">    <span class="built_in">print</span>(resp.json())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    main()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>运行结果：</strong><br><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/%E5%8D%9A%E5%AE%A2%E5%9B%BE%E7%89%87/%E4%B8%83%E9%BA%A6analysis/result.png"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">Chen Xs</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://cxs1427.github.io/2022/05/12/%E4%B8%83%E9%BA%A6signature%E5%8F%82%E6%95%B0%E9%80%86%E5%90%91%E8%BF%98%E5%8E%9F/">https://cxs1427.github.io/2022/05/12/%E4%B8%83%E9%BA%A6signature%E5%8F%82%E6%95%B0%E9%80%86%E5%90%91%E8%BF%98%E5%8E%9F/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://cxs1427.github.io" target="_blank">Chen's Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/3.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2022/05/13/Hexo-Butterfly-Github-%E5%BB%BA%E7%AB%99%E7%AC%94%E8%AE%B0/"><img class="prev-cover" src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/36.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">Hexo + Butterfly + Github Pages 建站笔记</div></div></a></div><div class="next-post pull-right"><a href="/2022/05/09/tortoise-git-%E8%AE%BE%E7%BD%AE-v2ray-%E4%BB%A3%E7%90%86/"><img class="next-cover" src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/35.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Tortoise git 设置 v2ray 代理</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Chen Xs</div><div class="author-info__description"></div></div><div class="card-info-data is-center"><div class="card-info-data-item"><a href="/archives/"><div class="headline">文章</div><div class="length-num">34</div></a></div><div class="card-info-data-item"><a href="/tags/"><div class="headline">标签</div><div class="length-num">0</div></a></div><div class="card-info-data-item"><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/cxs1427" target="_blank" title="Github"><i class="fab fa-github"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn card-announcement-animation"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E8%AF%95"><span class="toc-number">2.</span> <span class="toc-text">调试</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E5%88%86%E6%9E%90"><span class="toc-number">3.</span> <span class="toc-text">代码分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#l%E5%8F%82%E6%95%B0"><span class="toc-number">3.1.</span> <span class="toc-text">l参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#r%E5%8F%82%E6%95%B0"><span class="toc-number">3.2.</span> <span class="toc-text">r参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%A4%E4%B8%AA%E5%87%BD%E6%95%B0"><span class="toc-number">3.3.</span> <span class="toc-text">两个函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E6%95%B4%E7%90%86"><span class="toc-number">3.4.</span> <span class="toc-text">代码整理</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2022/06/01/Python%E4%B8%80%E4%BA%9B%E5%B8%B8%E8%A7%81%E5%BA%93%E7%9A%84%E4%BD%BF%E7%94%A8/" title="Python一些常见库的使用"><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/16.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Python一些常见库的使用"/></a><div class="content"><a class="title" href="/2022/06/01/Python%E4%B8%80%E4%BA%9B%E5%B8%B8%E8%A7%81%E5%BA%93%E7%9A%84%E4%BD%BF%E7%94%A8/" title="Python一些常见库的使用">Python一些常见库的使用</a><time datetime="2022-06-01T00:32:35.000Z" title="发表于 2022-06-01 08:32:35">2022-06-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/05/29/%E5%85%B3%E4%BA%8E%E6%95%B0%E6%8D%AE%E5%BA%93%E7%9A%84%E4%B8%80%E4%BA%9B%E7%AC%94%E8%AE%B0/" title="关于数据库的一些笔记"><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/12.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="关于数据库的一些笔记"/></a><div class="content"><a class="title" href="/2022/05/29/%E5%85%B3%E4%BA%8E%E6%95%B0%E6%8D%AE%E5%BA%93%E7%9A%84%E4%B8%80%E4%BA%9B%E7%AC%94%E8%AE%B0/" title="关于数据库的一些笔记">关于数据库的一些笔记</a><time datetime="2022-05-29T01:56:25.000Z" title="发表于 2022-05-29 09:56:25">2022-05-29</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/05/28/%E5%87%A0%E4%B8%AA%E6%AF%94%E8%BE%83%E7%AE%80%E5%8D%95%E7%9A%84js%E9%80%86%E5%90%91%E5%AE%9E%E6%88%98/" title="几个比较简单的js逆向实战"><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/30.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="几个比较简单的js逆向实战"/></a><div class="content"><a class="title" href="/2022/05/28/%E5%87%A0%E4%B8%AA%E6%AF%94%E8%BE%83%E7%AE%80%E5%8D%95%E7%9A%84js%E9%80%86%E5%90%91%E5%AE%9E%E6%88%98/" title="几个比较简单的js逆向实战">几个比较简单的js逆向实战</a><time datetime="2022-05-28T14:55:35.000Z" title="发表于 2022-05-28 22:55:35">2022-05-28</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/05/27/Pyppeteer%E7%AC%94%E8%AE%B0/" title="Pyppeteer笔记"><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/33.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Pyppeteer笔记"/></a><div class="content"><a class="title" href="/2022/05/27/Pyppeteer%E7%AC%94%E8%AE%B0/" title="Pyppeteer笔记">Pyppeteer笔记</a><time datetime="2022-05-27T07:39:55.000Z" title="发表于 2022-05-27 15:39:55">2022-05-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/05/26/Selenium%E4%B8%80%E4%BA%9B%E5%B8%B8%E7%94%A8%E6%8A%80%E5%B7%A7/" title="Selenium笔记"><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/default_top_imgs/2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Selenium笔记"/></a><div class="content"><a class="title" href="/2022/05/26/Selenium%E4%B8%80%E4%BA%9B%E5%B8%B8%E7%94%A8%E6%8A%80%E5%B7%A7/" title="Selenium笔记">Selenium笔记</a><time datetime="2022-05-26T07:28:39.000Z" title="发表于 2022-05-26 15:28:39">2022-05-26</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><!-- if theme.footer.owner.since && theme.footer.owner.since != nowYear// .copyright!= `&copy;${theme.footer.owner.since} - ${nowYear} By ${config.author}`--><!-- else--><div class="copyright">&copy;某年某月 <i class='fas fa-bug fa-spin'></i> By Chen Xs</div><!-- if theme.footer.copyright// .framework-info
+  // span= _p('footer.framework') + ' '
+  // a(href='https://hexo.io')= 'Hexo'
+  // span.footer-separator |
+  // span= _p('footer.theme') + ' '
+  // a(href='https://github.com/jerryc127/hexo-theme-butterfly')= 'Butterfly'--><!-- if theme.footer.custom_text// .footer_custom_text!=`${theme.footer.custom_text}`
+--></div><div class="container" id="jsi-flying-fish-container"><script src="/js/fish.js"></script></div><style>   @media only screen and (max-width: 767px){
+   #sidebar_search_box input[type=text]{width:calc(100% - 24px)}
+}</style></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script>function panguFn () {
+  if (typeof pangu === 'object') pangu.autoSpacingPage()
+  else {
+    getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js')
+      .then(() => {
+        pangu.autoSpacingPage()
+      })
+  }
+}
+
+function panguInit () {
+  if (false){
+    GLOBAL_CONFIG_SITE.isPost && panguFn()
+  } else {
+    panguFn()
+  }
+}
+
+document.addEventListener('DOMContentLoaded', panguInit)</script><div class="js-pjax"></div><script src="/js/fish_jquery.js"></script><script src="/js/chocolate.js"></script><script src="/js/fish.js"></script><div class="aplayer no-destroy" data-id="3145079790" data-server="netease" data-type="playlist" data-fixed="true" data-mini="true" data-listFolded="false" data-order="random" data-preload="none" data-autoplay="false" muted></div><canvas class="fireworks" mobile="true"></canvas><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/fireworks.min.js"></script><script defer="defer" id="fluttering_ribbon" mobile="true" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-fluttering-ribbon.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = true;
+document.body.addEventListener('input', POWERMODE);
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/gh/SerokSSR/cdn/meting.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>let pjaxSelectors = ["title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+var pjax = new Pjax({
+  elements: 'a:not([target="_blank"])',
+  selectors: pjaxSelectors,
+  cacheBust: false,
+  analytics: false,
+  scrollRestoration: false
+})
+
+document.addEventListener('pjax:send', function () {
+
+  // removeEventListener scroll 
+  window.tocScrollFn && window.removeEventListener('scroll', window.tocScrollFn)
+  window.scrollCollect && window.removeEventListener('scroll', scrollCollect)
+
+  typeof preloader === 'object' && preloader.initLoading()
+  document.getElementById('rightside').style.cssText = "opacity: ''; transform: ''"
+  
+  if (window.aplayers) {
+    for (let i = 0; i < window.aplayers.length; i++) {
+      if (!window.aplayers[i].options.fixed) {
+        window.aplayers[i].destroy()
+      }
+    }
+  }
+
+  typeof typed === 'object' && typed.destroy()
+
+  //reset readmode
+  const $bodyClassList = document.body.classList
+  $bodyClassList.contains('read-mode') && $bodyClassList.remove('read-mode')
+
+})
+
+document.addEventListener('pjax:complete', function () {
+  window.refreshFn()
+
+  document.querySelectorAll('script[data-pjax]').forEach(item => {
+    const newScript = document.createElement('script')
+    const content = item.text || item.textContent || item.innerHTML || ""
+    Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+    newScript.appendChild(document.createTextNode(content))
+    item.parentNode.replaceChild(newScript, item)
+  })
+
+  GLOBAL_CONFIG.islazyload && window.lazyLoadInstance.update()
+
+  typeof chatBtnFn === 'function' && chatBtnFn()
+  typeof panguInit === 'function' && panguInit()
+
+  // google analytics
+  typeof gtag === 'function' && gtag('config', '', {'page_path': window.location.pathname});
+
+  // baidu analytics
+  typeof _hmt === 'object' && _hmt.push(['_trackPageview',window.location.pathname]);
+
+  typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+
+  // prismjs
+  typeof Prism === 'object' && Prism.highlightAll()
+
+  typeof preloader === 'object' && preloader.endLoading()
+})
+
+document.addEventListener('pjax:error', (e) => {
+  if (e.request.status === 404) {
+    pjax.loadUrl('/404.html')
+  }
+})</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start --><script data-pjax>function electric_clock_injector_config(){
+                var parent_div_git = document.getElementsByClassName('sticky_layout')[0];
+                var item_html = '<div class="card-widget card-clock"><div class="card-glass"><div class="card-background"><div class="card-content"><div id="hexo_electric_clock"><img id="card-clock-loading" src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/Zfour/Butterfly-clock/clock/images/weather/loading.gif" style="height: 120px; width: 100%;" data-ll-status="loading" class="entered loading"></div></div></div></div></div>';
+                console.log('已挂载electric_clock')
+                // parent_div_git.innerHTML=item_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",item_html) // 有报错，但不影响使用(支持pjax跳转)
+            }if( document.getElementsByClassName('sticky_layout')[0] && (location.pathname ==='all'|| 'all' ==='all')){
+
+            electric_clock_injector_config()
+        } </script><script src="https://pv.sohu.com/cityjson?ie=utf-8"></script><script data-pjax  src="https://cdn.jsdelivr.net/gh/Zfour/hexo-electric-clock@1.0.6/clock.js"></script><script data-pjax>
+  function butterfly_footer_beautify_injector_config(){
+    var parent_div_git = document.getElementById('footer-wrap');
+    var item_html = '<p id="ghbdages"><a class="github-badge" target="_blank" href="https://hexo.io/" style="margin-inline:5px" data-title="博客框架为Hexo" title=""><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&amp;logo=hexo" alt=""/></a><a class="github-badge" target="_blank" href="https://butterfly.js.org/" style="margin-inline:5px" data-title="主题为Butterfly" title=""><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&amp;logo=bitdefender" alt=""/></a><a class="github-badge" target="_blank" href="https://www.jsdelivr.com/" style="margin-inline:5px" data-title="本站使用JsDelivr为静态资源提供CDN加速" title=""><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://img.shields.io/badge/CDN-jsDelivr-orange?style=flat&amp;logo=jsDelivr" alt=""/></a><a class="github-badge" target="_blank" href="https://github.com/" style="margin-inline:5px" data-title="本站项目由Github托管" title=""><img src= "https://cdn.jsdelivr.net/gh/cxs1427/my_blog_files/loading.gif" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&amp;logo=GitHub" alt=""/></a></p>';
+    console.log('已挂载butterfly_footer_beautify')
+    parent_div_git.insertAdjacentHTML("beforeend",item_html)
+    }
+  var elist = 'null'.split(',');
+  var cpage = location.pathname;
+  var epage = 'all';
+  var flag = 0;
+
+  for (var i=0;i<elist.length;i++){
+    if (cpage.includes(elist[i])){
+      flag++;
+    }
+  }
+
+  if ((epage ==='all')&&(flag == 0)){
+    butterfly_footer_beautify_injector_config();
+  }
+  else if (epage === cpage){
+    butterfly_footer_beautify_injector_config();
+  }
+  </script><!-- hexo injector body_end end --></body></html>
